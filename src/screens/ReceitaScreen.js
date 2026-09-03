@@ -90,6 +90,10 @@ export default function ReceitaScreen() {
     setFormularioAberto(false);
     return true;
   }
+  
+  function sairESalvar() {
+    salvarReceita();
+  }
 
   function excluirReceita(id) {
     Alert.alert("Excluir receita", "Deseja realmente excluir esta receita?", [
