@@ -110,4 +110,73 @@ export default function ReceitaScreen() {
     ));
   }
 
-  
+  const receitasFiltradas = receitas.filter((receita) => {
+    if (filtro === "Favoritas") return receita.favorita;
+    if (filtro === "Quero fazer") return receita.status === "fazer";
+    if (filtro === "Já fiz") return receita.status === "feito";
+    return true;
+  });
+
+  if (formularioAberto) {
+    return (
+      <SafeAreaView style={styles.tela}>
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <ScrollView contentContainerStyle={styles.formularioTela}>
+            <TouchableOpacity onPress={() => setFormularioAberto(false)}>
+              <Text style={styles.voltar}>Voltar</Text>
+            </TouchableOpacity>
+            <Text style={styles.titulo}>{receitaEditando ? "Editar receita" : "Nova receita"}</Text>
+            <Text style={styles.label}>Nome da receita</Text>
+            <TextInput style={styles.input} value={formulario.nome} onChangeText={(valor) => atualizarCampo("nome", valor)} placeholder="Ex.: Bolo de chocolate" />
+            <Text style={styles.label}>Categoria</Text>
+            <View style={styles.opcoes}>{categorias.map((categoria) => (
+              <TouchableOpacity key={categoria} style={[styles.opcao, formulario.categoria === categoria && styles.opcaoAtiva]} onPress={() => atualizarCampo("categoria", categoria)}>
+                <Text style={[styles.opcaoTexto, formulario.categoria === categoria && styles.opcaoTextoAtivo]}>{categoria}</Text>
+              </TouchableOpacity>
+            ))}</View>
+            <Text style={styles.label}>Ingredientes</Text>
+            <TextInput style={[styles.input, styles.areaTexto]} value={formulario.ingredientes} onChangeText={(valor) => atualizarCampo("ingredientes", valor)} placeholder="Separe os ingredientes por vírgula" multiline />
+            <Text style={styles.label}>Modo de preparo</Text>
+            <TextInput style={[styles.input, styles.areaTextoGrande]} value={formulario.preparo} onChangeText={(valor) => atualizarCampo("preparo", valor)} placeholder="Explique como preparar" multiline />
+            <Text style={styles.label}>Status</Text>
+            <View style={styles.opcoes}>{[["fazer", "Quero fazer"], ["feito", "Já fiz"]].map(([valor, texto]) => (
+              <TouchableOpacity key={valor} style={[styles.opcao, formulario.status === valor && styles.opcaoAtiva]} onPress={() => atualizarCampo("status", valor)}>
+                <Text style={[styles.opcaoTexto, formulario.status === valor && styles.opcaoTextoAtivo]}>{texto}</Text>
+              </TouchableOpacity>
+            ))}</View>
+            <TouchableOpacity style={styles.botaoPrincipal} onPress={salvarReceita}>
+              <Text style={styles.botaoPrincipalTexto}>{receitaEditando ? "Salvar alterações" : "Salvar receita"}</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.tela}>
+      <View style={styles.cabecalho}>
+        <View>
+          <Text style={styles.marca}>Saborê</Text>
+          <Text style={styles.subtitulo}>Seu caderno de receitas</Text>
+        </View>
+        <TouchableOpacity style={styles.botaoNovo} onPress={abrirNovaReceita} accessibilityLabel="Adicionar receita">
+          <Text style={styles.botaoNovoTexto}>+</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.filtros}>{filtros.map((item) => (
+        <TouchableOpacity key={item} style={[styles.filtro, filtro === item && styles.filtroAtivo]} onPress={() => setFiltro(item)}>
+          <Text style={[styles.filtroTexto, filtro === item && styles.filtroTextoAtivo]}>{item}</Text>
+        </TouchableOpacity>
+      ))}</View>
+      <Text style={styles.tituloLista}>{filtro === "Todas" ? "Minhas receitas" : filtro}</Text>
+      {carregando ? <Text style={styles.mensagem}>Carregando...</Text> : <FlatList
+        data={receitasFiltradas}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <ReceitaItem receita={item} aoEditar={abrirEdicao} aoExcluir={excluirReceita} aoFavoritar={alternarFavorito} aoAlternarStatus={alternarStatus} />}
+        contentContainerStyle={styles.lista}
+        ListEmptyComponent={<Text style={styles.mensagem}>Nenhuma receita aqui ainda. Cadastre a primeira!</Text>}
+      />}
+    </SafeAreaView>
+  );
+}
