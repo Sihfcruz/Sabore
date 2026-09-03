@@ -73,11 +73,10 @@ export default function ReceitaScreen() {
   function atualizarCampo(campo, valor) {
     setFormulario((atual) => ({ ...atual, [campo]: valor }));
   }
-
   function salvarReceita() {
     if (!formulario.nome.trim() || !formulario.ingredientes.trim() || !formulario.preparo.trim()) {
       Alert.alert("Preencha os campos", "Nome, ingredientes e modo de preparo são obrigatórios.");
-      return;
+      return false;
     }
 
     if (receitaEditando) {
