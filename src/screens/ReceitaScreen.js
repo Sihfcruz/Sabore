@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -36,11 +36,17 @@ export default function ReceitaScreen() {
   const [receitaEditando, setReceitaEditando] = useState(null);
   const [formulario, setFormulario] = useState(receitaVazia);
 
+  // Referência para impedir a gravação na primeira renderização
+  const isPrimeiraCarga = useRef(true);
+
+  // Carrega as receitas salvas no início
   useEffect(() => {
     async function carregarReceitas() {
       try {
         const receitasSalvas = await AsyncStorage.getItem(CHAVE_STORAGE);
-        if (receitasSalvas) setReceitas(JSON.parse(receitasSalvas));
+        if (receitasSalvas) {
+          setReceitas(JSON.parse(receitasSalvas));
+        }
       } catch (erro) {
         Alert.alert("Erro", "Não foi possível carregar suas receitas.");
       } finally {
@@ -50,12 +56,25 @@ export default function ReceitaScreen() {
     carregarReceitas();
   }, []);
 
+  // Salva no AsyncStorage quando o array de receitas for alterado
   useEffect(() => {
-    if (!carregando) {
-      AsyncStorage.setItem(CHAVE_STORAGE, JSON.stringify(receitas)).catch(() => {
-        Alert.alert("Erro", "Não foi possível salvar suas receitas.");
-      });
+    if (carregando) return;
+
+    // Pula a gravação automática no primeiro carregamento do app
+    if (isPrimeiraCarga.current) {
+      isPrimeiraCarga.current = false;
+      return;
     }
+
+    async function salvarNoStorage() {
+      try {
+        await AsyncStorage.setItem(CHAVE_STORAGE, JSON.stringify(receitas));
+      } catch (erro) {
+        Alert.alert("Erro", "Não foi possível salvar suas receitas.");
+      }
+    }
+
+    salvarNoStorage();
   }, [receitas, carregando]);
 
   function abrirNovaReceita() {
@@ -73,6 +92,7 @@ export default function ReceitaScreen() {
   function atualizarCampo(campo, valor) {
     setFormulario((atual) => ({ ...atual, [campo]: valor }));
   }
+
   function salvarReceita() {
     if (!formulario.nome.trim() || !formulario.ingredientes.trim() || !formulario.preparo.trim()) {
       Alert.alert("Preencha os campos", "Nome, ingredientes e modo de preparo são obrigatórios.");
@@ -80,9 +100,11 @@ export default function ReceitaScreen() {
     }
 
     if (receitaEditando) {
-      setReceitas((atuais) => atuais.map((receita) =>
-        receita.id === receitaEditando.id ? { ...formulario, id: receita.id } : receita,
-      ));
+      setReceitas((atuais) =>
+        atuais.map((receita) =>
+          receita.id === receitaEditando.id ? { ...formulario, id: receita.id } : receita
+        )
+      );
     } else {
       setReceitas((atuais) => [...atuais, { ...formulario, id: Date.now().toString() }]);
     }
@@ -90,28 +112,32 @@ export default function ReceitaScreen() {
     setFormularioAberto(false);
     return true;
   }
-  
-  function sairESalvar() {
-    salvarReceita();
-  }
 
   function excluirReceita(id) {
     Alert.alert("Excluir receita", "Deseja realmente excluir esta receita?", [
       { text: "Cancelar", style: "cancel" },
-      { text: "Excluir", style: "destructive", onPress: () => setReceitas((atuais) => atuais.filter((receita) => receita.id !== id)) },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: () => setReceitas((atuais) => atuais.filter((receita) => receita.id !== id)),
+      },
     ]);
   }
 
   function alternarFavorito(id) {
-    setReceitas((atuais) => atuais.map((receita) =>
-      receita.id === id ? { ...receita, favorita: !receita.favorita } : receita,
-    ));
+    setReceitas((atuais) =>
+      atuais.map((receita) =>
+        receita.id === id ? { ...receita, favorita: !receita.favorita } : receita
+      )
+    );
   }
 
   function alternarStatus(id) {
-    setReceitas((atuais) => atuais.map((receita) =>
-      receita.id === id ? { ...receita, status: receita.status === "fazer" ? "feito" : "fazer" } : receita,
-    ));
+    setReceitas((atuais) =>
+      atuais.map((receita) =>
+        receita.id === id ? { ...receita, status: receita.status === "fazer" ? "feito" : "fazer" } : receita
+      )
+    );
   }
 
   const receitasFiltradas = receitas.filter((receita) => {
@@ -131,25 +157,63 @@ export default function ReceitaScreen() {
             </TouchableOpacity>
             <Text style={styles.titulo}>{receitaEditando ? "Editar receita" : "Nova receita"}</Text>
             <Text style={styles.label}>Nome da receita</Text>
-            <TextInput style={styles.input} value={formulario.nome} onChangeText={(valor) => atualizarCampo("nome", valor)} placeholder="Ex.: Bolo de chocolate" />
+            <TextInput
+              style={styles.input}
+              value={formulario.nome}
+              onChangeText={(valor) => atualizarCampo("nome", valor)}
+              placeholder="Ex.: Bolo de chocolate"
+            />
             <Text style={styles.label}>Categoria</Text>
-            <View style={styles.opcoes}>{categorias.map((categoria) => (
-              <TouchableOpacity key={categoria} style={[styles.opcao, formulario.categoria === categoria && styles.opcaoAtiva]} onPress={() => atualizarCampo("categoria", categoria)}>
-                <Text style={[styles.opcaoTexto, formulario.categoria === categoria && styles.opcaoTextoAtivo]}>{categoria}</Text>
-              </TouchableOpacity>
-            ))}</View>
+            <View style={styles.opcoes}>
+              {categorias.map((categoria) => (
+                <TouchableOpacity
+                  key={categoria}
+                  style={[styles.opcao, formulario.categoria === categoria && styles.opcaoAtiva]}
+                  onPress={() => atualizarCampo("categoria", categoria)}
+                >
+                  <Text style={[styles.opcaoTexto, formulario.categoria === categoria && styles.opcaoTextoAtivo]}>
+                    {categoria}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
             <Text style={styles.label}>Ingredientes</Text>
-            <TextInput style={[styles.input, styles.areaTexto]} value={formulario.ingredientes} onChangeText={(valor) => atualizarCampo("ingredientes", valor)} placeholder="Separe os ingredientes por vírgula" multiline />
+            <TextInput
+              style={[styles.input, styles.areaTexto]}
+              value={formulario.ingredientes}
+              onChangeText={(valor) => atualizarCampo("ingredientes", valor)}
+              placeholder="Separe os ingredientes por vírgula"
+              multiline
+            />
             <Text style={styles.label}>Modo de preparo</Text>
-            <TextInput style={[styles.input, styles.areaTextoGrande]} value={formulario.preparo} onChangeText={(valor) => atualizarCampo("preparo", valor)} placeholder="Explique como preparar" multiline />
+            <TextInput
+              style={[styles.input, styles.areaTextoGrande]}
+              value={formulario.preparo}
+              onChangeText={(valor) => atualizarCampo("preparo", valor)}
+              placeholder="Explique como preparar"
+              multiline
+            />
             <Text style={styles.label}>Status</Text>
-            <View style={styles.opcoes}>{[["fazer", "Quero fazer"], ["feito", "Já fiz"]].map(([valor, texto]) => (
-              <TouchableOpacity key={valor} style={[styles.opcao, formulario.status === valor && styles.opcaoAtiva]} onPress={() => atualizarCampo("status", valor)}>
-                <Text style={[styles.opcaoTexto, formulario.status === valor && styles.opcaoTextoAtivo]}>{texto}</Text>
-              </TouchableOpacity>
-            ))}</View>
+            <View style={styles.opcoes}>
+              {[
+                ["fazer", "Quero fazer"],
+                ["feito", "Já fiz"],
+              ].map(([valor, texto]) => (
+                <TouchableOpacity
+                  key={valor}
+                  style={[styles.opcao, formulario.status === valor && styles.opcaoAtiva]}
+                  onPress={() => atualizarCampo("status", valor)}
+                >
+                  <Text style={[styles.opcaoTexto, formulario.status === valor && styles.opcaoTextoAtivo]}>
+                    {texto}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
             <TouchableOpacity style={styles.botaoPrincipal} onPress={salvarReceita}>
-              <Text style={styles.botaoPrincipalTexto}>{receitaEditando ? "Salvar alterações" : "Salvar receita"}</Text>
+              <Text style={styles.botaoPrincipalTexto}>
+                {receitaEditando ? "Salvar alterações" : "Salvar receita"}
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -168,19 +232,39 @@ export default function ReceitaScreen() {
           <Text style={styles.botaoNovoTexto}>+</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.filtros}>{filtros.map((item) => (
-        <TouchableOpacity key={item} style={[styles.filtro, filtro === item && styles.filtroAtivo]} onPress={() => setFiltro(item)}>
-          <Text style={[styles.filtroTexto, filtro === item && styles.filtroTextoAtivo]}>{item}</Text>
-        </TouchableOpacity>
-      ))}</View>
+      <View style={styles.filtros}>
+        {filtros.map((item) => (
+          <TouchableOpacity
+            key={item}
+            style={[styles.filtro, filtro === item && styles.filtroAtivo]}
+            onPress={() => setFiltro(item)}
+          >
+            <Text style={[styles.filtroTexto, filtro === item && styles.filtroTextoAtivo]}>{item}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
       <Text style={styles.tituloLista}>{filtro === "Todas" ? "Minhas receitas" : filtro}</Text>
-      {carregando ? <Text style={styles.mensagem}>Carregando...</Text> : <FlatList
-        data={receitasFiltradas}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ReceitaItem receita={item} aoEditar={abrirEdicao} aoExcluir={excluirReceita} aoFavoritar={alternarFavorito} aoAlternarStatus={alternarStatus} />}
-        contentContainerStyle={styles.lista}
-        ListEmptyComponent={<Text style={styles.mensagem}>Nenhuma receita aqui ainda. Cadastre a primeira!</Text>}
-      />}
+      {carregando ? (
+        <Text style={styles.mensagem}>Carregando...</Text>
+      ) : (
+        <FlatList
+          data={receitasFiltradas}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <ReceitaItem
+              receita={item}
+              aoEditar={abrirEdicao}
+              aoExcluir={excluirReceita}
+              aoFavoritar={alternarFavorito}
+              aoAlternarStatus={alternarStatus}
+            />
+          )}
+          contentContainerStyle={styles.lista}
+          ListEmptyComponent={
+            <Text style={styles.mensagem}>Nenhuma receita aqui ainda. Cadastre a primeira!</Text>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -255,7 +339,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 24,
   },
-   label: {
+  label: {
     color: "#60473a",
     fontSize: 12,
     fontWeight: "700",
@@ -292,5 +376,4 @@ const styles = StyleSheet.create({
     marginTop: 28,
   },
   botaoPrincipalTexto: { color: "#fff", fontWeight: "700" },
- 
 });
