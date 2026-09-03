@@ -180,3 +180,76 @@ export default function ReceitaScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  tela: { flex: 1, backgroundColor: "#f8f1e9" },
+  cabecalho: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  marca: {
+    color: "#713316",
+    fontSize: 30,
+    fontWeight: "700",
+    fontStyle: "italic",
+  },
+  subtitulo: { color: "#8f7566", fontSize: 12, marginTop: 2 },
+  botaoNovo: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#713316",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  botaoNovoTexto: {
+    color: "#fff",
+    fontSize: 30,
+    fontWeight: "300",
+    lineHeight: 32,
+  },
+  filtros: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    gap: 7,
+    marginBottom: 20,
+  },
+  filtro: {
+    borderWidth: 1,
+    borderColor: "#dfcfc0",
+    borderRadius: 18,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  filtroAtivo: { backgroundColor: "#713316", borderColor: "#713316" },
+  filtroTexto: { color: "#806d60", fontSize: 11 },
+  filtroTextoAtivo: { color: "#fff", fontWeight: "600" },
+  tituloLista: {
+    color: "#3e2418",
+    fontSize: 20,
+    fontWeight: "700",
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  lista: { paddingHorizontal: 16, paddingBottom: 24, flexGrow: 1 },
+  mensagem: {
+    textAlign: "center",
+    color: "#947e70",
+    padding: 28,
+    lineHeight: 20,
+  },
+  formularioTela: { padding: 20, paddingBottom: 36 },
+  voltar: { color: "#9a431c", fontWeight: "600", marginBottom: 20 },
+  titulo: {
+    color: "#3e2418",
+    fontSize: 26,
+    fontWeight: "700",
+    marginBottom: 24,
+  },
+ 
+});
