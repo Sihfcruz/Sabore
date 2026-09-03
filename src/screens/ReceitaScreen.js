@@ -88,6 +88,7 @@ export default function ReceitaScreen() {
     }
 
     setFormularioAberto(false);
+    return true;
   }
 
   function excluirReceita(id) {
